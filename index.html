@@ -339,7 +339,7 @@
       let currentFilter = 'all';
       let svg, g, zoom, root, tree;
       
-      const CARD_WIDTH = 260;
+      const CARD_WIDTH = 275;
       const CARD_HEIGHT = 90;
       const SPACING_V = 120;
       const SPACING_H = 340;
@@ -657,10 +657,18 @@
 
       // Controles de zoom
       function resetZoom() {
-        svg.transition().duration(750).call(
-          zoom.transform,
-          d3.zoomIdentity.translate(width/4, height/2).scale(0.7)
-        );
+        // El nodo raíz (CEO) está en (0, 0) en coordenadas del SVG
+        // El viewBox [-width/2, -height/2, width, height] ya centra el origen en la pantalla
+        // Solo necesitamos aplicar un scale sin translate adicional
+        
+        const scale = 0.7;
+        
+        svg.transition()
+          .duration(750)
+          .call(
+            zoom.transform,
+            d3.zoomIdentity.scale(scale)
+          );
       }
 
       function zoomIn() {
