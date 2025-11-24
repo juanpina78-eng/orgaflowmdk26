@@ -1,144 +1,746 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Organigrama Interactivo</title>
+    <title>Mondraker Organizational Chart</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-      body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow: hidden; }
-      .node-card { transition: all 0.3s ease-out; }
-      .node-card:hover { transform: translateY(-3px); filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)); stroke: #93c5fd; }
-      .node-name:hover { fill: #1d4ed8; }
-      .node-indicator:hover { fill: #3b82f6; }
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+      
+      body { 
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #ffffff;
+        overflow: hidden; 
+        margin: 0;
+        padding: 0;
+      }
+      
+      .node-card { 
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+      }
+      
+      .node-card:hover { 
+        transform: translateY(-4px) scale(1.02);
+        filter: drop-shadow(0 8px 16px rgba(0, 113, 185, 0.3));
+      }
+      
+      .node-card.highlighted { 
+        stroke: #0071B9;
+        stroke-width: 3;
+        filter: drop-shadow(0 0 20px rgba(0, 113, 185, 0.8));
+        animation: pulse 2s infinite;
+      }
+      
+      @keyframes pulse {
+        0%, 100% { filter: drop-shadow(0 0 20px rgba(0, 113, 185, 0.8)); }
+        50% { filter: drop-shadow(0 0 30px rgba(0, 113, 185, 1)); }
+      }
+      
+      .search-input {
+        transition: all 0.3s;
+        border: 2px solid #e2e3e4;
+        background: #ffffff;
+        color: #000000;
+      }
+      
+      .search-input:focus {
+        border-color: #0071B9;
+        box-shadow: 0 0 0 3px rgba(0, 113, 185, 0.1);
+        outline: none;
+      }
+      
+      .search-input::placeholder {
+        color: #999;
+      }
+      
+      #modal { 
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+      }
+      
+      .fade-in { 
+        animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      @keyframes fadeIn { 
+        from { opacity: 0; transform: translateY(-20px) scale(0.95); } 
+        to { opacity: 1; transform: translateY(0) scale(1); } 
+      }
+      
+      .btn-mondraker {
+        background: #0071B9;
+        transition: all 0.3s;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .btn-mondraker:hover {
+        background: #005a94;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0, 113, 185, 0.4);
+      }
+      
+      .btn-secondary {
+        background: #e2e3e4;
+        color: #000000;
+        transition: all 0.3s;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .btn-secondary:hover {
+        background: #d0d1d2;
+        transform: translateY(-1px);
+      }
+      
+      .btn-export {
+        background: #ffffff;
+        border: 2px solid #0071B9;
+        color: #0071B9;
+        transition: all 0.3s;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .btn-export:hover {
+        background: #0071B9;
+        color: #ffffff;
+        transform: translateY(-2px);
+      }
+      
+      .logo-mondraker {
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        color: #000000;
+      }
+      
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0, 113, 185, 0.3);
+        border-radius: 50%;
+        border-top-color: #0071B9;
+        animation: spin 1s ease-in-out infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .dropdown {
+        position: relative;
+        display: inline-block;
+      }
+
+      .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #ffffff;
+        min-width: 200px;
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.15);
+        z-index: 1;
+        border: 2px solid #e2e3e4;
+        border-radius: 8px;
+        margin-top: 8px;
+      }
+
+      .dropdown-content button {
+        color: #000000;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+
+      .dropdown-content button:hover {
+        background-color: #0071B9;
+        color: #ffffff;
+      }
+
+      .dropdown:hover .dropdown-content {
+        display: block;
+      }
+
+      #exportingOverlay {
+        backdrop-filter: blur(5px);
+        background: rgba(255, 255, 255, 0.9);
+      }
     </style>
 </head>
 <body class="w-screen h-screen">
-    <div id="chart-container" class="w-full h-full"></div>
-    <script src="data.js"></script>
-    <script>
-      
-      // Updated dimensions for HTML export
-      const CARD_WIDTH = 240;
-      const CARD_HEIGHT = 80;
-      const SPACING_V = 110;
-      const SPACING_H = 320;
+    <!-- Overlay de exportación -->
+    <div id="exportingOverlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center">
+      <div class="bg-white border-2 border-blue-500 rounded-2xl p-8 text-center shadow-2xl">
+        <div class="loading mx-auto mb-4" style="width: 40px; height: 40px; border-width: 4px;"></div>
+        <p class="text-black text-lg font-bold">Exporting chart...</p>
+        <p class="text-gray-600 text-sm mt-2">Please wait a moment</p>
+      </div>
+    </div>
 
+    <!-- Panel de Control Superior -->
+    <div class="absolute top-0 left-0 right-0 z-50 bg-white border-b-2 border-gray-200 fade-in shadow-sm">
+      <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-4">
+            <h1 class="logo-mondraker text-2xl">MONDRAKER</h1>
+            <span class="text-gray-500 text-sm font-light">Organizational Chart</span>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="text-gray-600 text-sm">
+              <span id="employeeCount"><span class="loading"></span> Loading data...</span>
+            </div>
+            
+            <!-- Botón de Exportar -->
+            <div class="dropdown">
+              <button class="btn-export px-5 py-3 rounded-lg text-xs flex items-center gap-2">
+                📥 EXPORT
+                <span class="text-xs">▼</span>
+              </button>
+              <div class="dropdown-content">
+                <button onclick="exportToPNG()">📷 Export as PNG</button>
+                <button onclick="exportToPDF()">📄 Export as PDF</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex flex-wrap gap-3 items-center">
+          <!-- Búsqueda -->
+          <div class="flex-1 min-w-72">
+            <input 
+              type="text" 
+              id="searchInput" 
+              placeholder="🔍 Search employee by name, role or department..." 
+              class="search-input w-full px-4 py-3 rounded-lg text-sm font-medium"
+            />
+          </div>
+          
+          <!-- Filtros por Departamento -->
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="filterDept('all')" class="dept-btn btn-mondraker px-4 py-2.5 text-white rounded-lg text-[10px]">
+              ALL
+            </button>
+            <button onclick="filterDept('Producto')" class="dept-btn btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              PRODUCT
+            </button>
+            <button onclick="filterDept('RRHH')" class="dept-btn btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              HR
+            </button>
+            <button onclick="filterDept('FINANCE')" class="dept-btn btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              FINANCE
+            </button>
+            <button onclick="filterDept('MARKETING')" class="dept-btn btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              MARKETING
+            </button>
+            <button onclick="filterDept('OPERATIONS')" class="dept-btn btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              OPERATIONS
+            </button>
+            <button onclick="filterDept('WAREHOUSE')" class="dept-btn btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              WAREHOUSE
+            </button>
+            <button onclick="filterDept('PRODUCTION')" class="dept-btn btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              PRODUCTION
+            </button>
+            <button onclick="filterDept('IT')" class="dept-btn btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              IT
+            </button>
+            <button onclick="filterDept('SALES')" class="dept-btn btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              SALES
+            </button>
+            <button onclick="filterDept('CUSTOMER SERVICE')" class="dept-btn btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              CUSTOMER SERVICE
+            </button>
+          </div>
+          
+          <!-- Controles de Navegación -->
+          <div class="flex gap-2">
+            <button onclick="resetZoom()" class="btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              🏠 START
+            </button>
+            <button onclick="zoomIn()" class="btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              ➕
+            </button>
+            <button onclick="zoomOut()" class="btn-secondary px-4 py-2.5 text-white rounded-lg text-[10px]">
+              ➖
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor del Organigrama -->
+    <div id="chart-container" class="w-full h-full pt-36"></div>
+
+    <!-- Modal de Detalles -->
+    <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" onclick="closeModal(event)">
+      <div class="bg-white border-2 border-gray-200 rounded-2xl shadow-2xl max-w-lg w-full p-8 fade-in" onclick="event.stopPropagation()">
+        <div class="flex justify-between items-start mb-6">
+          <div>
+            <h2 id="modalName" class="text-3xl font-bold text-black mb-1"></h2>
+            <div class="h-1 w-16 bg-gradient-to-r from-blue-500 to-transparent"></div>
+          </div>
+          <button onclick="closeModal()" class="text-gray-400 hover:text-black text-3xl transition">&times;</button>
+        </div>
+        
+        <div class="space-y-4">
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1 font-semibold">Role</p>
+            <p id="modalRole" class="text-lg font-bold text-black"></p>
+          </div>
+          
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1 font-semibold">Department</p>
+            <p id="modalDept" class="text-lg font-bold text-blue-600"></p>
+          </div>
+          
+          <div id="modalEmailSection" class="bg-gray-50 rounded-lg p-4 border border-gray-200 hidden">
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1 font-semibold">Email</p>
+            <a id="modalEmail" href="#" class="text-base font-semibold text-blue-600 hover:text-blue-700 transition"></a>
+          </div>
+          
+          <div id="modalPhoneSection" class="bg-gray-50 rounded-lg p-4 border border-gray-200 hidden">
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1 font-semibold">Phone</p>
+            <p id="modalPhone" class="text-base font-semibold text-black"></p>
+          </div>
+          
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1 font-semibold">Direct Reports</p>
+            <p id="modalReports" class="text-lg font-bold text-black"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ============================================
+      // CONFIGURACIÓN
+      // ============================================
+      const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywyIp6chrjmy30T7Dj8wTp9biDw_W1c3NXuRUeRo18rluWWRyH2asrIktjGBr7NISs/exec';
+
+      // Variables globales
+      let allData = [];
+      let currentFilter = 'all';
+      let svg, g, zoom, root, tree;
+      
+      const CARD_WIDTH = 260;
+      const CARD_HEIGHT = 90;
+      const SPACING_V = 120;
+      const SPACING_H = 340;
       const width = window.innerWidth;
       const height = window.innerHeight;
 
-      const svg = d3.select("#chart-container").append("svg")
-        .attr("viewBox", [-width / 2, -height / 2, width, height])
-        .style("width", "100%")
-        .style("height", "100%");
+      // Función para convertir datos planos a jerarquía usando IDs
+      function buildHierarchy(flatData) {
+        const map = {};
+        const roots = [];
+        
+        // Crear mapa con IDs como clave
+        flatData.forEach(person => {
+          map[person.id] = {
+            id: person.id,
+            name: person.name,
+            role: person.role,
+            department: person.department,
+            email: person.email || '',
+            phone: person.phone || '',
+            children: []
+          };
+        });
+        
+        // Construir jerarquía usando manager_id
+        flatData.forEach(person => {
+          if (person.manager_id && map[person.manager_id]) {
+            map[person.manager_id].children.push(map[person.id]);
+          } else {
+            roots.push(map[person.id]);
+          }
+        });
+        
+        return roots.length === 1 ? roots[0] : { 
+          id: "root", 
+          name: "Organization", 
+          role: "", 
+          department: "", 
+          children: roots 
+        };
+      }
 
-      const g = svg.append("g");
-      
-      const zoom = d3.zoom()
-        .scaleExtent([0.1, 4])
-        .on("zoom", (e) => g.attr("transform", e.transform));
-      
-      svg.call(zoom);
-      svg.call(zoom.transform, d3.zoomIdentity.translate(width/4, height/2).scale(0.8));
+      // Cargar datos desde Apps Script
+      async function loadData() {
+        try {
+          console.log('🔄 Loading data from Google Sheets...');
+          const response = await fetch(APPS_SCRIPT_URL);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log('✅ Data received:', data);
+          
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          
+          // Validar que los datos tienen IDs
+          const missingIds = data.filter(person => !person.id);
+          if (missingIds.length > 0) {
+            console.warn('⚠️ Warning: Some employees are missing IDs:', missingIds);
+          }
+          
+          allData = data;
+          initializeChart();
+        } catch (error) {
+          console.error('❌ Error loading data:', error);
+          document.getElementById('employeeCount').innerHTML = 
+            '<span class="text-red-500">⚠️ Error: ' + error.message + '</span>';
+        }
+      }
 
-      const root = d3.hierarchy(data);
-      const tree = d3.tree().nodeSize([SPACING_V, SPACING_H]);
-      tree(root);
+      // Inicializar el organigrama
+      function initializeChart() {
+        console.log('📊 Initializing chart with', allData.length, 'employees');
+        
+        document.getElementById('employeeCount').innerHTML = 
+          `<span class="text-black font-bold">${allData.length}</span> <span class="text-gray-500">employees</span>`;
+        
+        svg = d3.select("#chart-container").append("svg")
+          .attr("viewBox", [-width / 2, -height / 2, width, height])
+          .style("width", "100%")
+          .style("height", "100%");
 
-      // Links
-      g.append("g")
-        .attr("fill", "none")
-        .attr("stroke", "#cbd5e1")
-        .attr("stroke-opacity", 0.6)
-        .attr("stroke-width", 1.5)
-        .selectAll("path")
-        .data(root.links())
-        .join("path")
-        .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
+        g = svg.append("g");
+        
+        zoom = d3.zoom()
+          .scaleExtent([0.1, 4])
+          .on("zoom", (e) => g.attr("transform", e.transform));
+        
+        svg.call(zoom);
+        
+        renderChart(allData);
+        resetZoom();
+      }
 
-      // Nodes
-      const node = g.append("g")
-        .selectAll("g")
-        .data(root.descendants())
-        .join("g")
-        .attr("transform", d => "translate(" + d.y + "," + d.x + ")")
-        .attr("class", "group cursor-pointer");
+      // Renderizar organigrama
+      function renderChart(data) {
+        g.selectAll("*").remove();
+        
+        const hierarchyData = buildHierarchy(data);
+        root = d3.hierarchy(hierarchyData);
+        tree = d3.tree().nodeSize([SPACING_V, SPACING_H]);
+        tree(root);
 
-      // Card
-      node.append("rect")
-        .attr("width", CARD_WIDTH)
-        .attr("height", CARD_HEIGHT)
-        .attr("x", 0)
-        .attr("y", -CARD_HEIGHT / 2)
-        .attr("rx", 12)
-        .attr("fill", "white")
-        .attr("stroke", "#e2e8f0")
-        .attr("stroke-width", 1)
-        .attr("class", "node-card shadow-sm");
+        // Links (conexiones)
+        g.append("g")
+          .attr("fill", "none")
+          .attr("stroke", "#0071B9")
+          .attr("stroke-opacity", 0.4)
+          .attr("stroke-width", 2)
+          .selectAll("path")
+          .data(root.links())
+          .join("path")
+          .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
 
-      // Color Marker
-      const colors = ["#2563eb", "#0ea5e9", "#8b5cf6", "#f59e0b", "#10b981", "#ec4899"];
-      node.append("rect")
-        .attr("width", 4)
-        .attr("height", CARD_HEIGHT - 32)
-        .attr("x", 12)
-        .attr("y", -(CARD_HEIGHT / 2) + 16)
-        .attr("rx", 2)
-        .attr("fill", d => colors[d.depth % colors.length]);
+        // Nodos
+        const node = g.append("g")
+          .selectAll("g")
+          .data(root.descendants())
+          .join("g")
+          .attr("transform", d => `translate(${d.y},${d.x})`)
+          .attr("class", "node-group");
 
-      // Name
-      node.append("text")
-        .attr("dy", -8)
-        .attr("x", 28)
-        .text(d => d.data.name)
-        .attr("class", "node-name font-bold fill-slate-800 text-sm transition-colors");
+        // Tarjeta principal
+        node.append("rect")
+          .attr("width", CARD_WIDTH)
+          .attr("height", CARD_HEIGHT)
+          .attr("x", 0)
+          .attr("y", -CARD_HEIGHT / 2)
+          .attr("rx", 8)
+          .attr("fill", "#ffffff")
+          .attr("stroke", "#e2e3e4")
+          .attr("stroke-width", 2)
+          .attr("class", "node-card")
+          .on("click", (event, d) => showModal(d.data));
 
-      // Role (Wrapped)
-      node.each(function(d) {
+        // Barra superior azul Mondraker
+        node.append("rect")
+          .attr("width", CARD_WIDTH)
+          .attr("height", 6)
+          .attr("x", 0)
+          .attr("y", -CARD_HEIGHT / 2)
+          .attr("rx", 8)
+          .attr("fill", "#0071B9");
+
+        // Nombre
+        node.append("text")
+          .attr("dy", -12)
+          .attr("x", 16)
+          .text(d => d.data.name)
+          .attr("class", "font-bold text-sm")
+          .attr("fill", "#000000");
+
+        // Puesto (con wrap)
+        node.each(function(d) {
           const el = d3.select(this);
           const roleText = el.append("text")
-             .attr("x", 28)
-             .attr("y", 8)
-             .attr("class", "fill-slate-500 text-[10px] font-medium uppercase tracking-wide");
+            .attr("x", 16)
+            .attr("y", 8)
+            .attr("class", "text-[11px] font-medium uppercase tracking-wide")
+            .attr("fill", "#666");
 
           const words = d.data.role.split(/\s+/).reverse();
           let line = [];
-          const lineHeight = 1.2;
-          const width = CARD_WIDTH - 40;
-          let tspan = roleText.append("tspan").attr("x", 28).attr("dy", 0 + "em");
+          const lineHeight = 1.3;
+          const maxWidth = CARD_WIDTH - 32;
+          let tspan = roleText.append("tspan").attr("x", 16).attr("dy", "0em");
           
           let word;
           while ((word = words.pop())) {
             line.push(word);
             tspan.text(line.join(" "));
-            if (tspan.node().getComputedTextLength() > width) {
+            if (tspan.node().getComputedTextLength() > maxWidth) {
               line.pop();
               tspan.text(line.join(" "));
               line = [word];
-              tspan = roleText.append("tspan").attr("x", 28).attr("dy", lineHeight + "em").text(word);
+              tspan = roleText.append("tspan").attr("x", 16).attr("dy", lineHeight + "em").text(word);
             }
           }
+        });
+
+        // Departamento
+        node.filter(d => d.data.department).append("text")
+          .attr("y", (CARD_HEIGHT / 2) - 14)
+          .attr("x", 16)
+          .text(d => d.data.department.toUpperCase())
+          .attr("class", "text-[10px] font-bold tracking-wider")
+          .attr("fill", "#0071B9");
+
+        // Indicador de reportes directos
+        node.filter(d => d.children && d.children.length > 0).append("g")
+          .attr("transform", `translate(${CARD_WIDTH - 30}, 0)`)
+          .call(g => {
+            g.append("circle")
+              .attr("r", 14)
+              .attr("fill", "#0071B9")
+              .attr("stroke", "#ffffff")
+              .attr("stroke-width", 2);
+            g.append("text")
+              .attr("text-anchor", "middle")
+              .attr("dy", "0.35em")
+              .attr("class", "text-xs font-bold")
+              .attr("fill", "#ffffff")
+              .text(d => d.children.length);
+          });
+      }
+
+      // Búsqueda
+      document.getElementById('searchInput').addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        
+        d3.selectAll('.node-card').classed('highlighted', false);
+        
+        if (searchTerm === '') return;
+        
+        d3.selectAll('.node-group').each(function(d) {
+          const matches = 
+            d.data.name.toLowerCase().includes(searchTerm) ||
+            d.data.role.toLowerCase().includes(searchTerm) ||
+            (d.data.department && d.data.department.toLowerCase().includes(searchTerm));
+          
+          if (matches) {
+            d3.select(this).select('.node-card').classed('highlighted', true);
+          }
+        });
       });
 
-      // Department
-      node.filter(d => d.data.department).append("text")
-        .attr("y", (CARD_HEIGHT / 2) - 12)
-        .attr("x", 28)
-        .text(d => d.data.department)
-        .attr("class", "fill-slate-400 text-[9px] font-semibold");
+      // Filtro por departamento
+      function filterDept(dept) {
+        currentFilter = dept;
+        
+        document.querySelectorAll('.dept-btn').forEach(btn => {
+          btn.classList.remove('btn-mondraker');
+          btn.classList.add('btn-secondary');
+        });
+        event.target.classList.remove('btn-secondary');
+        event.target.classList.add('btn-mondraker');
+        
+        const filtered = dept === 'all' 
+          ? allData 
+          : allData.filter(p => p.department === dept);
+        
+        document.getElementById('employeeCount').innerHTML = 
+          `<span class="text-black font-bold">${filtered.length}</span> <span class="text-gray-500">of ${allData.length} employees</span>`;
+        
+        renderChart(filtered);
+      }
 
-      // Indicator
-      node.filter(d => !!d.children || !!d.data.children).append("circle")
-        .attr("cx", CARD_WIDTH)
-        .attr("cy", 0)
-        .attr("r", 4)
-        .attr("fill", "#cbd5e1")
-        .attr("stroke", "white")
-        .attr("stroke-width", 2)
-        .attr("class", "node-indicator transition-colors");
+      // Modal de detalles
+      function showModal(data) {
+        document.getElementById('modalName').textContent = data.name;
+        document.getElementById('modalRole').textContent = data.role;
+        document.getElementById('modalDept').textContent = data.department || 'N/A';
+        
+        if (data.email) {
+          document.getElementById('modalEmailSection').classList.remove('hidden');
+          document.getElementById('modalEmail').textContent = data.email;
+          document.getElementById('modalEmail').href = `mailto:${data.email}`;
+        } else {
+          document.getElementById('modalEmailSection').classList.add('hidden');
+        }
+        
+        if (data.phone) {
+          document.getElementById('modalPhoneSection').classList.remove('hidden');
+          document.getElementById('modalPhone').textContent = data.phone;
+        } else {
+          document.getElementById('modalPhoneSection').classList.add('hidden');
+        }
+        
+        const reports = data.children ? data.children.length : 0;
+        document.getElementById('modalReports').textContent = reports === 0 ? 'None' : reports;
+        
+        document.getElementById('modal').classList.remove('hidden');
+      }
 
+      function closeModal(event) {
+        if (!event || event.target.id === 'modal') {
+          document.getElementById('modal').classList.add('hidden');
+        }
+      }
+
+      // Controles de zoom
+      function resetZoom() {
+        svg.transition().duration(750).call(
+          zoom.transform,
+          d3.zoomIdentity.translate(width/4, height/2).scale(0.7)
+        );
+      }
+
+      function zoomIn() {
+        svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+      }
+
+      function zoomOut() {
+        svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+      }
+
+      // ============================================
+      // FUNCIONES DE EXPORTACIÓN
+      // ============================================
+      
+      async function exportToPNG() {
+        try {
+          document.getElementById('exportingOverlay').classList.remove('hidden');
+          
+          // Reset zoom para capturar toda la vista
+          const currentTransform = d3.zoomTransform(svg.node());
+          svg.transition().duration(0).call(
+            zoom.transform,
+            d3.zoomIdentity.translate(width/4, height/2).scale(0.5)
+          );
+          
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const chartElement = document.getElementById('chart-container');
+          const canvas = await html2canvas(chartElement, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            logging: false,
+            width: chartElement.offsetWidth,
+            height: chartElement.offsetHeight
+          });
+          
+          // Restaurar zoom original
+          svg.transition().duration(0).call(zoom.transform, currentTransform);
+          
+          // Descargar imagen
+          const link = document.createElement('a');
+          const timestamp = new Date().toISOString().split('T')[0];
+          link.download = `Mondraker_Organizational_Chart_${timestamp}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          
+          document.getElementById('exportingOverlay').classList.add('hidden');
+        } catch (error) {
+          console.error('Error exporting PNG:', error);
+          alert('Error exporting chart. Please try again.');
+          document.getElementById('exportingOverlay').classList.add('hidden');
+        }
+      }
+
+      async function exportToPDF() {
+        try {
+          document.getElementById('exportingOverlay').classList.remove('hidden');
+          
+          // Reset zoom
+          const currentTransform = d3.zoomTransform(svg.node());
+          svg.transition().duration(0).call(
+            zoom.transform,
+            d3.zoomIdentity.translate(width/4, height/2).scale(0.4)
+          );
+          
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const chartElement = document.getElementById('chart-container');
+          const canvas = await html2canvas(chartElement, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            logging: false,
+            width: chartElement.offsetWidth,
+            height: chartElement.offsetHeight
+          });
+          
+          // Restaurar zoom
+          svg.transition().duration(0).call(zoom.transform, currentTransform);
+          
+          const imgData = canvas.toDataURL('image/png');
+          const { jsPDF } = window.jspdf;
+          
+          // Crear PDF en landscape con tamaño ajustado
+          const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a3'
+          });
+          
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          
+          pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+          
+          const timestamp = new Date().toISOString().split('T')[0];
+          pdf.save(`Mondraker_Organizational_Chart_${timestamp}.pdf`);
+          
+          document.getElementById('exportingOverlay').classList.add('hidden');
+        } catch (error) {
+          console.error('Error exporting PDF:', error);
+          alert('Error exporting chart. Please try again.');
+          document.getElementById('exportingOverlay').classList.add('hidden');
+        }
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+      });
+
+      // Iniciar - cargar datos
+      loadData();
     </script>
 </body>
 </html>
