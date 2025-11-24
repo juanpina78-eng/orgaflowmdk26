@@ -174,7 +174,7 @@
         color: #ffffff;
       }
 
-      .dropdown:hover .dropdown-content {
+      .dropdown-content.show {
         display: block;
       }
 
@@ -209,11 +209,11 @@
             
             <!-- Botón de Exportar -->
             <div class="dropdown">
-              <button class="btn-export px-5 py-3 rounded-lg text-xs flex items-center gap-2">
+              <button onclick="toggleDropdown(event)" class="btn-export px-5 py-3 rounded-lg text-xs flex items-center gap-2">
                 📥 EXPORT
                 <span class="text-xs">▼</span>
               </button>
-              <div class="dropdown-content">
+              <div id="exportDropdown" class="dropdown-content">
                 <button onclick="exportToPNG()">📷 Export as PNG</button>
                 <button onclick="exportToPDF()">📄 Export as PDF</button>
               </div>
@@ -644,8 +644,31 @@
       // FUNCIONES DE EXPORTACIÓN
       // ============================================
       
+      // Toggle dropdown del menú de exportación
+      function toggleDropdown(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('exportDropdown');
+        dropdown.classList.toggle('show');
+      }
+
+      // Cerrar dropdown si se hace click fuera
+      window.onclick = function(event) {
+        if (!event.target.matches('.btn-export') && !event.target.closest('.btn-export')) {
+          const dropdowns = document.getElementsByClassName("dropdown-content");
+          for (let i = 0; i < dropdowns.length; i++) {
+            const openDropdown = dropdowns[i];
+            if (openDropdown.classList.contains('show')) {
+              openDropdown.classList.remove('show');
+            }
+          }
+        }
+      }
+      
       async function exportToPNG() {
         try {
+          // Cerrar el dropdown
+          document.getElementById('exportDropdown').classList.remove('show');
+          
           document.getElementById('exportingOverlay').classList.remove('hidden');
           
           // Reset zoom para capturar toda la vista
@@ -686,6 +709,9 @@
 
       async function exportToPDF() {
         try {
+          // Cerrar el dropdown
+          document.getElementById('exportDropdown').classList.remove('show');
+          
           document.getElementById('exportingOverlay').classList.remove('hidden');
           
           // Reset zoom
