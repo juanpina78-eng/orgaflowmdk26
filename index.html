@@ -479,14 +479,27 @@
           .attr("class", "node-card")
           .on("click", (event, d) => showModal(d.data));
 
-        // Barra superior azul Mondraker
+        // Barra superior con color por departamento
+        const departmentColors = {
+          'Producto': '#0071B9',      // Azul Mondraker (Product)
+          'RRHH': '#10b981',          // Verde esmeralda (HR)
+          'FINANCE': '#f59e0b',       // Ámbar/Naranja (Finance)
+          'MARKETING': '#ec4899',     // Rosa/Magenta (Marketing)
+          'OPERATIONS': '#8b5cf6',    // Púrpura (Operations)
+          'WAREHOUSE': '#06b6d4',     // Cyan (Warehouse)
+          'PRODUCTION': '#ef4444',    // Rojo (Production)
+          'IT': '#6366f1',            // Índigo (IT)
+          'SALES': '#14b8a6',         // Teal (Sales)
+          'CUSTOMER SERVICE': '#f97316' // Naranja brillante (Customer Service)
+        };
+        
         node.append("rect")
           .attr("width", CARD_WIDTH)
           .attr("height", 6)
           .attr("x", 0)
           .attr("y", -CARD_HEIGHT / 2)
           .attr("rx", 8)
-          .attr("fill", "#0071B9");
+          .attr("fill", d => departmentColors[d.data.department] || '#0071B9');
 
         // Nombre
         node.append("text")
@@ -524,13 +537,13 @@
           }
         });
 
-        // Departamento
+        // Departamento con color correspondiente
         node.filter(d => d.data.department).append("text")
           .attr("y", (CARD_HEIGHT / 2) - 14)
           .attr("x", 16)
           .text(d => d.data.department.toUpperCase())
           .attr("class", "text-[10px] font-bold tracking-wider")
-          .attr("fill", "#0071B9");
+          .attr("fill", d => departmentColors[d.data.department] || '#0071B9');
 
         // Indicador de reportes directos
         node.filter(d => d.children && d.children.length > 0).append("g")
@@ -593,9 +606,27 @@
 
       // Modal de detalles
       function showModal(data) {
+        // Paleta de colores por departamento (igual que en las tarjetas)
+        const departmentColors = {
+          'Producto': '#0071B9',
+          'RRHH': '#10b981',
+          'FINANCE': '#f59e0b',
+          'MARKETING': '#ec4899',
+          'OPERATIONS': '#8b5cf6',
+          'WAREHOUSE': '#06b6d4',
+          'PRODUCTION': '#ef4444',
+          'IT': '#6366f1',
+          'SALES': '#14b8a6',
+          'CUSTOMER SERVICE': '#f97316'
+        };
+        
         document.getElementById('modalName').textContent = data.name;
         document.getElementById('modalRole').textContent = data.role;
-        document.getElementById('modalDept').textContent = data.department || 'N/A';
+        
+        const deptElement = document.getElementById('modalDept');
+        deptElement.textContent = data.department || 'N/A';
+        // Aplicar color correspondiente al departamento
+        deptElement.style.color = departmentColors[data.department] || '#0071B9';
         
         if (data.email) {
           document.getElementById('modalEmailSection').classList.remove('hidden');
@@ -671,11 +702,32 @@
           
           document.getElementById('exportingOverlay').classList.remove('hidden');
           
-          // Reset zoom para capturar toda la vista
+          // Guardar transformación actual
           const currentTransform = d3.zoomTransform(svg.node());
+          
+          // Calcular el bounding box del contenido
+          const bounds = g.node().getBBox();
+          const fullWidth = bounds.width;
+          const fullHeight = bounds.height;
+          const midX = bounds.x + bounds.width / 2;
+          const midY = bounds.y + bounds.height / 2;
+          
+          // Calcular escala para que quepa todo con margen
+          const margin = 100;
+          const scale = Math.min(
+            width / (fullWidth + margin * 2),
+            height / (fullHeight + margin * 2),
+            1
+          );
+          
+          // Centrar el contenido
+          const translateX = width / 2 - midX * scale;
+          const translateY = height / 2 - midY * scale;
+          
+          // Aplicar transformación para centrar todo
           svg.transition().duration(0).call(
             zoom.transform,
-            d3.zoomIdentity.translate(width/4, height/2).scale(0.5)
+            d3.zoomIdentity.translate(translateX, translateY).scale(scale)
           );
           
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -714,11 +766,32 @@
           
           document.getElementById('exportingOverlay').classList.remove('hidden');
           
-          // Reset zoom
+          // Guardar transformación actual
           const currentTransform = d3.zoomTransform(svg.node());
+          
+          // Calcular el bounding box del contenido
+          const bounds = g.node().getBBox();
+          const fullWidth = bounds.width;
+          const fullHeight = bounds.height;
+          const midX = bounds.x + bounds.width / 2;
+          const midY = bounds.y + bounds.height / 2;
+          
+          // Calcular escala para que quepa todo con margen
+          const margin = 100;
+          const scale = Math.min(
+            width / (fullWidth + margin * 2),
+            height / (fullHeight + margin * 2),
+            1
+          );
+          
+          // Centrar el contenido
+          const translateX = width / 2 - midX * scale;
+          const translateY = height / 2 - midY * scale;
+          
+          // Aplicar transformación para centrar todo
           svg.transition().duration(0).call(
             zoom.transform,
-            d3.zoomIdentity.translate(width/4, height/2).scale(0.4)
+            d3.zoomIdentity.translate(translateX, translateY).scale(scale)
           );
           
           await new Promise(resolve => setTimeout(resolve, 500));
