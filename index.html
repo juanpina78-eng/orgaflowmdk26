@@ -702,47 +702,88 @@
           
           document.getElementById('exportingOverlay').classList.remove('hidden');
           
-          // Guardar transformación actual
-          const currentTransform = d3.zoomTransform(svg.node());
+          await new Promise(resolve => setTimeout(resolve, 100));
           
-          // Calcular el bounding box del contenido
-          const bounds = g.node().getBBox();
-          const fullWidth = bounds.width;
-          const fullHeight = bounds.height;
-          const midX = bounds.x + bounds.width / 2;
-          const midY = bounds.y + bounds.height / 2;
+          // Obtener todos los elementos g visibles (no display:none)
+          const visibleNodes = g.selectAll('g').filter(function() {
+            return this.style.display !== 'none';
+          });
           
-          // Calcular escala para que quepa todo con margen
+          // Calcular bounding box solo de nodos visibles
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          
+          visibleNodes.each(function() {
+            const bbox = this.getBBox();
+            const transform = this.getAttribute('transform');
+            let x = 0, y = 0;
+            
+            if (transform) {
+              const match = transform.match(/translate\(([^,]+),([^)]+)\)/);
+              if (match) {
+                x = parseFloat(match[1]);
+                y = parseFloat(match[2]);
+              }
+            }
+            
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y - CARD_HEIGHT/2);
+            maxX = Math.max(maxX, x + CARD_WIDTH);
+            maxY = Math.max(maxY, y + CARD_HEIGHT/2);
+          });
+          
+          // Añadir margen
           const margin = 100;
-          const scale = Math.min(
-            width / (fullWidth + margin * 2),
-            height / (fullHeight + margin * 2),
-            1
-          );
+          minX -= margin;
+          minY -= margin;
+          maxX += margin;
+          maxY += margin;
           
-          // Centrar el contenido
-          const translateX = width / 2 - midX * scale;
-          const translateY = height / 2 - midY * scale;
+          const exportWidth = maxX - minX;
+          const exportHeight = maxY - minY;
           
-          // Aplicar transformación para centrar todo
-          svg.transition().duration(0).call(
-            zoom.transform,
-            d3.zoomIdentity.translate(translateX, translateY).scale(scale)
-          );
+          // Crear un contenedor temporal para exportación
+          const tempContainer = document.createElement('div');
+          tempContainer.style.position = 'absolute';
+          tempContainer.style.left = '-9999px';
+          tempContainer.style.width = '1920px';
+          tempContainer.style.height = '1080px';
+          tempContainer.style.backgroundColor = '#ffffff';
+          document.body.appendChild(tempContainer);
           
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Crear SVG temporal con viewBox ajustado al contenido visible
+          const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          tempSvg.setAttribute('width', '1920');
+          tempSvg.setAttribute('height', '1080');
+          tempSvg.setAttribute('viewBox', `${minX} ${minY} ${exportWidth} ${exportHeight}`);
+          tempSvg.style.backgroundColor = '#ffffff';
           
-          const chartElement = document.getElementById('chart-container');
-          const canvas = await html2canvas(chartElement, {
+          // Copiar los estilos necesarios
+          const styleElement = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+          styleElement.textContent = `
+            text { font-family: 'Inter', sans-serif; }
+            .node-card { cursor: pointer; }
+          `;
+          tempSvg.appendChild(styleElement);
+          
+          // Clonar el grupo g con todo el contenido
+          const clonedG = g.node().cloneNode(true);
+          tempSvg.appendChild(clonedG);
+          
+          tempContainer.appendChild(tempSvg);
+          
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Capturar el contenedor temporal
+          const canvas = await html2canvas(tempContainer, {
             backgroundColor: '#ffffff',
             scale: 2,
             logging: false,
-            width: chartElement.offsetWidth,
-            height: chartElement.offsetHeight
+            width: 1920,
+            height: 1080
           });
           
-          // Restaurar zoom original
-          svg.transition().duration(0).call(zoom.transform, currentTransform);
+          // Limpiar
+          document.body.removeChild(tempContainer);
           
           // Descargar imagen
           const link = document.createElement('a');
@@ -766,54 +807,99 @@
           
           document.getElementById('exportingOverlay').classList.remove('hidden');
           
-          // Guardar transformación actual
-          const currentTransform = d3.zoomTransform(svg.node());
+          await new Promise(resolve => setTimeout(resolve, 100));
           
-          // Calcular el bounding box del contenido
-          const bounds = g.node().getBBox();
-          const fullWidth = bounds.width;
-          const fullHeight = bounds.height;
-          const midX = bounds.x + bounds.width / 2;
-          const midY = bounds.y + bounds.height / 2;
+          // Obtener todos los elementos g visibles (no display:none)
+          const visibleNodes = g.selectAll('g').filter(function() {
+            return this.style.display !== 'none';
+          });
           
-          // Calcular escala para que quepa todo con margen
+          // Calcular bounding box solo de nodos visibles
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          
+          visibleNodes.each(function() {
+            const bbox = this.getBBox();
+            const transform = this.getAttribute('transform');
+            let x = 0, y = 0;
+            
+            if (transform) {
+              const match = transform.match(/translate\(([^,]+),([^)]+)\)/);
+              if (match) {
+                x = parseFloat(match[1]);
+                y = parseFloat(match[2]);
+              }
+            }
+            
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y - CARD_HEIGHT/2);
+            maxX = Math.max(maxX, x + CARD_WIDTH);
+            maxY = Math.max(maxY, y + CARD_HEIGHT/2);
+          });
+          
+          // Añadir margen
           const margin = 100;
-          const scale = Math.min(
-            width / (fullWidth + margin * 2),
-            height / (fullHeight + margin * 2),
-            1
-          );
+          minX -= margin;
+          minY -= margin;
+          maxX += margin;
+          maxY += margin;
           
-          // Centrar el contenido
-          const translateX = width / 2 - midX * scale;
-          const translateY = height / 2 - midY * scale;
+          const exportWidth = maxX - minX;
+          const exportHeight = maxY - minY;
           
-          // Aplicar transformación para centrar todo
-          svg.transition().duration(0).call(
-            zoom.transform,
-            d3.zoomIdentity.translate(translateX, translateY).scale(scale)
-          );
+          // Crear un contenedor temporal para exportación
+          const tempContainer = document.createElement('div');
+          tempContainer.style.position = 'absolute';
+          tempContainer.style.left = '-9999px';
+          tempContainer.style.width = '1920px';
+          tempContainer.style.height = '1080px';
+          tempContainer.style.backgroundColor = '#ffffff';
+          document.body.appendChild(tempContainer);
           
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Crear SVG temporal con viewBox ajustado al contenido visible
+          const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          tempSvg.setAttribute('width', '1920');
+          tempSvg.setAttribute('height', '1080');
+          tempSvg.setAttribute('viewBox', `${minX} ${minY} ${exportWidth} ${exportHeight}`);
+          tempSvg.style.backgroundColor = '#ffffff';
           
-          const chartElement = document.getElementById('chart-container');
-          const canvas = await html2canvas(chartElement, {
+          // Copiar los estilos necesarios
+          const styleElement = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+          styleElement.textContent = `
+            text { font-family: 'Inter', sans-serif; }
+            .node-card { cursor: pointer; }
+          `;
+          tempSvg.appendChild(styleElement);
+          
+          // Clonar el grupo g con todo el contenido
+          const clonedG = g.node().cloneNode(true);
+          tempSvg.appendChild(clonedG);
+          
+          tempContainer.appendChild(tempSvg);
+          
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Capturar el contenedor temporal
+          const canvas = await html2canvas(tempContainer, {
             backgroundColor: '#ffffff',
             scale: 2,
             logging: false,
-            width: chartElement.offsetWidth,
-            height: chartElement.offsetHeight
+            width: 1920,
+            height: 1080
           });
           
-          // Restaurar zoom
-          svg.transition().duration(0).call(zoom.transform, currentTransform);
+          // Limpiar
+          document.body.removeChild(tempContainer);
           
           const imgData = canvas.toDataURL('image/png');
           const { jsPDF } = window.jspdf;
           
-          // Crear PDF en landscape con tamaño ajustado
+          // Determinar orientación según el aspect ratio
+          const aspectRatio = exportWidth / exportHeight;
+          const orientation = aspectRatio > 1.3 ? 'landscape' : 'portrait';
+          
+          // Crear PDF
           const pdf = new jsPDF({
-            orientation: 'landscape',
+            orientation: orientation,
             unit: 'mm',
             format: 'a3'
           });
@@ -821,7 +907,21 @@
           const pdfWidth = pdf.internal.pageSize.getWidth();
           const pdfHeight = pdf.internal.pageSize.getHeight();
           
-          pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+          // Calcular dimensiones manteniendo aspect ratio
+          let imgWidth = pdfWidth - 20; // margen de 10mm a cada lado
+          let imgHeight = (canvas.height / canvas.width) * imgWidth;
+          
+          // Si la altura es mayor que la página, ajustar por altura
+          if (imgHeight > pdfHeight - 20) {
+            imgHeight = pdfHeight - 20;
+            imgWidth = (canvas.width / canvas.height) * imgHeight;
+          }
+          
+          // Centrar en la página
+          const x = (pdfWidth - imgWidth) / 2;
+          const y = (pdfHeight - imgHeight) / 2;
+          
+          pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
           
           const timestamp = new Date().toISOString().split('T')[0];
           pdf.save(`Mondraker_Organizational_Chart_${timestamp}.pdf`);
