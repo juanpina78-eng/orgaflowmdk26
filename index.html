@@ -946,8 +946,19 @@
         if (e.key === 'Escape') closeModal();
       });
 
-      // Iniciar - cargar datos
-      loadData();
+      // Iniciar - cargar datos SOLO cuando el DOM y las librerías estén listas
+      window.addEventListener('load', function() {
+        // Verificar que D3 esté cargado
+        if (typeof d3 === 'undefined') {
+          console.error('❌ D3 library failed to load');
+          document.getElementById('employeeCount').innerHTML = 
+            '<span class="text-red-500">⚠️ Error: d3 is not defined</span>';
+          return;
+        }
+        
+        console.log('✅ D3 loaded successfully');
+        loadData();
+      });
     </script>
 </body>
 </html>
