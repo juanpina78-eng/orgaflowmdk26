@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mondraker Organizational Chart</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
       
@@ -327,6 +324,11 @@
         </div>
       </div>
     </div>
+
+    <!-- Cargar librerías en orden correcto -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <script>
       // ============================================
@@ -946,19 +948,38 @@
         if (e.key === 'Escape') closeModal();
       });
 
-      // Iniciar - cargar datos SOLO cuando el DOM y las librerías estén listas
-      window.addEventListener('load', function() {
-        // Verificar que D3 esté cargado
-        if (typeof d3 === 'undefined') {
-          console.error('❌ D3 library failed to load');
-          document.getElementById('employeeCount').innerHTML = 
-            '<span class="text-red-500">⚠️ Error: d3 is not defined</span>';
-          return;
+      // Función para esperar a que D3 esté disponible
+      function waitForD3(callback, maxAttempts = 50) {
+        let attempts = 0;
+        
+        function checkD3() {
+          attempts++;
+          
+          if (typeof d3 !== 'undefined') {
+            console.log('✅ D3 loaded successfully after', attempts, 'attempts');
+            callback();
+          } else if (attempts >= maxAttempts) {
+            console.error('❌ D3 library failed to load after', maxAttempts, 'attempts');
+            document.getElementById('employeeCount').innerHTML = 
+              '<span class="text-red-500">⚠️ Error: d3 is not defined - Check your internet connection</span>';
+          } else {
+            console.log('⏳ Waiting for D3... attempt', attempts);
+            setTimeout(checkD3, 100); // Reintentar cada 100ms
+          }
         }
         
-        console.log('✅ D3 loaded successfully');
-        loadData();
-      });
+        checkD3();
+      }
+
+      // Iniciar cuando el DOM esté listo
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          waitForD3(loadData);
+        });
+      } else {
+        // DOM ya está listo, solo esperar D3
+        waitForD3(loadData);
+      }
     </script>
 </body>
 </html>
