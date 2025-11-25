@@ -325,14 +325,38 @@
       </div>
     </div>
 
-    <!-- Cargar librerías en orden correcto con onload explícito -->
+    <!-- Sistema de carga con múltiples CDNs de respaldo -->
     <script>
-      // Sistema de carga secuencial de librerías
       (function() {
         let scriptsLoaded = {
           d3: false,
           html2canvas: false,
           jspdf: false
+        };
+        
+        let loadAttempts = {
+          d3: 0,
+          html2canvas: 0,
+          jspdf: 0
+        };
+        
+        // CDNs alternativos para cada librería
+        const cdnOptions = {
+          d3: [
+            'https://d3js.org/d3.v7.min.js',
+            'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js',
+            'https://unpkg.com/d3@7/dist/d3.min.js'
+          ],
+          html2canvas: [
+            'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+            'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+            'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js'
+          ],
+          jspdf: [
+            'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+            'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+            'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js'
+          ]
         };
         
         function checkAllLoaded() {
@@ -341,51 +365,60 @@
         
         function tryInitialize() {
           if (checkAllLoaded() && typeof initializeApp === 'function') {
-            console.log('✅ All libraries loaded, initializing app...');
+            console.log('✅ All libraries loaded successfully!');
             initializeApp();
           }
         }
         
-        // Cargar D3
-        const d3Script = document.createElement('script');
-        d3Script.src = 'https://d3js.org/d3.v7.min.js';
-        d3Script.onload = function() {
-          console.log('✅ D3.js loaded');
-          scriptsLoaded.d3 = true;
-          tryInitialize();
-        };
-        d3Script.onerror = function() {
-          console.error('❌ Failed to load D3.js');
-          document.getElementById('employeeCount').innerHTML = 
-            '<span class="text-red-500">⚠️ Error: Failed to load D3 library</span>';
-        };
-        document.body.appendChild(d3Script);
+        function loadScriptWithFallback(name, urls, index = 0) {
+          if (index >= urls.length) {
+            console.error(`❌ Failed to load ${name} from all CDNs`);
+            if (name === 'd3') {
+              document.getElementById('employeeCount').innerHTML = 
+                '<span class="text-red-500">⚠️ Error: Cannot load D3 library. Check your internet connection or firewall settings.</span>';
+            }
+            return;
+          }
+          
+          const url = urls[index];
+          console.log(`⏳ Loading ${name} from CDN ${index + 1}/${urls.length}: ${url.split('/')[2]}`);
+          
+          const script = document.createElement('script');
+          script.src = url;
+          
+          script.onload = function() {
+            console.log(`✅ ${name} loaded from ${url.split('/')[2]}`);
+            scriptsLoaded[name] = true;
+            loadAttempts[name] = index + 1;
+            tryInitialize();
+          };
+          
+          script.onerror = function() {
+            console.warn(`⚠️ Failed to load ${name} from ${url.split('/')[2]}, trying next CDN...`);
+            loadAttempts[name]++;
+            // Intentar con el siguiente CDN
+            setTimeout(() => loadScriptWithFallback(name, urls, index + 1), 500);
+          };
+          
+          document.body.appendChild(script);
+        }
         
-        // Cargar html2canvas
-        const html2canvasScript = document.createElement('script');
-        html2canvasScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-        html2canvasScript.onload = function() {
-          console.log('✅ html2canvas loaded');
-          scriptsLoaded.html2canvas = true;
-          tryInitialize();
-        };
-        html2canvasScript.onerror = function() {
-          console.error('❌ Failed to load html2canvas');
-        };
-        document.body.appendChild(html2canvasScript);
+        // Iniciar carga de todas las librerías
+        loadScriptWithFallback('d3', cdnOptions.d3);
+        loadScriptWithFallback('html2canvas', cdnOptions.html2canvas);
+        loadScriptWithFallback('jspdf', cdnOptions.jspdf);
         
-        // Cargar jsPDF
-        const jspdfScript = document.createElement('script');
-        jspdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-        jspdfScript.onload = function() {
-          console.log('✅ jsPDF loaded');
-          scriptsLoaded.jspdf = true;
-          tryInitialize();
-        };
-        jspdfScript.onerror = function() {
-          console.error('❌ Failed to load jsPDF');
-        };
-        document.body.appendChild(jspdfScript);
+        // Timeout de seguridad (30 segundos)
+        setTimeout(function() {
+          if (!checkAllLoaded()) {
+            console.error('❌ Timeout: Not all libraries loaded after 30 seconds');
+            console.log('Status:', scriptsLoaded);
+            if (!scriptsLoaded.d3) {
+              document.getElementById('employeeCount').innerHTML = 
+                '<span class="text-red-500">⚠️ Error: Network timeout. Please check your connection and reload the page.</span>';
+            }
+          }
+        }, 30000);
       })();
     </script>
 
