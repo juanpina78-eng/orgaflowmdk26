@@ -325,10 +325,69 @@
       </div>
     </div>
 
-    <!-- Cargar librerías en orden correcto -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Cargar librerías en orden correcto con onload explícito -->
+    <script>
+      // Sistema de carga secuencial de librerías
+      (function() {
+        let scriptsLoaded = {
+          d3: false,
+          html2canvas: false,
+          jspdf: false
+        };
+        
+        function checkAllLoaded() {
+          return scriptsLoaded.d3 && scriptsLoaded.html2canvas && scriptsLoaded.jspdf;
+        }
+        
+        function tryInitialize() {
+          if (checkAllLoaded() && typeof initializeApp === 'function') {
+            console.log('✅ All libraries loaded, initializing app...');
+            initializeApp();
+          }
+        }
+        
+        // Cargar D3
+        const d3Script = document.createElement('script');
+        d3Script.src = 'https://d3js.org/d3.v7.min.js';
+        d3Script.onload = function() {
+          console.log('✅ D3.js loaded');
+          scriptsLoaded.d3 = true;
+          tryInitialize();
+        };
+        d3Script.onerror = function() {
+          console.error('❌ Failed to load D3.js');
+          document.getElementById('employeeCount').innerHTML = 
+            '<span class="text-red-500">⚠️ Error: Failed to load D3 library</span>';
+        };
+        document.body.appendChild(d3Script);
+        
+        // Cargar html2canvas
+        const html2canvasScript = document.createElement('script');
+        html2canvasScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        html2canvasScript.onload = function() {
+          console.log('✅ html2canvas loaded');
+          scriptsLoaded.html2canvas = true;
+          tryInitialize();
+        };
+        html2canvasScript.onerror = function() {
+          console.error('❌ Failed to load html2canvas');
+        };
+        document.body.appendChild(html2canvasScript);
+        
+        // Cargar jsPDF
+        const jspdfScript = document.createElement('script');
+        jspdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        jspdfScript.onload = function() {
+          console.log('✅ jsPDF loaded');
+          scriptsLoaded.jspdf = true;
+          tryInitialize();
+        };
+        jspdfScript.onerror = function() {
+          console.error('❌ Failed to load jsPDF');
+        };
+        document.body.appendChild(jspdfScript);
+      })();
+    </script>
 
     <script>
       // ============================================
@@ -948,37 +1007,34 @@
         if (e.key === 'Escape') closeModal();
       });
 
-      // Función para esperar a que D3 esté disponible
-      function waitForD3(callback, maxAttempts = 50) {
-        let attempts = 0;
+      // Función de inicialización de la aplicación
+      function initializeApp() {
+        console.log('🚀 Starting Mondraker Organizational Chart...');
         
-        function checkD3() {
-          attempts++;
-          
-          if (typeof d3 !== 'undefined') {
-            console.log('✅ D3 loaded successfully after', attempts, 'attempts');
-            callback();
-          } else if (attempts >= maxAttempts) {
-            console.error('❌ D3 library failed to load after', maxAttempts, 'attempts');
-            document.getElementById('employeeCount').innerHTML = 
-              '<span class="text-red-500">⚠️ Error: d3 is not defined - Check your internet connection</span>';
-          } else {
-            console.log('⏳ Waiting for D3... attempt', attempts);
-            setTimeout(checkD3, 100); // Reintentar cada 100ms
-          }
+        // Verificación final de librerías
+        if (typeof d3 === 'undefined') {
+          console.error('❌ D3 is not available');
+          document.getElementById('employeeCount').innerHTML = 
+            '<span class="text-red-500">⚠️ Error: D3 library not loaded</span>';
+          return;
         }
         
-        checkD3();
+        if (typeof html2canvas === 'undefined') {
+          console.warn('⚠️ html2canvas not available - Export to PNG will not work');
+        }
+        
+        if (typeof window.jspdf === 'undefined') {
+          console.warn('⚠️ jsPDF not available - Export to PDF will not work');
+        }
+        
+        // Iniciar carga de datos
+        loadData();
       }
 
-      // Iniciar cuando el DOM esté listo
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-          waitForD3(loadData);
-        });
-      } else {
-        // DOM ya está listo, solo esperar D3
-        waitForD3(loadData);
+      // Fallback: Si las librerías ya estaban cargadas cuando llegamos aquí
+      if (typeof d3 !== 'undefined' && typeof html2canvas !== 'undefined' && typeof window.jspdf !== 'undefined') {
+        console.log('✅ Libraries already loaded, initializing immediately');
+        initializeApp();
       }
     </script>
 </body>
